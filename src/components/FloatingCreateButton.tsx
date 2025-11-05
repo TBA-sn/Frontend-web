@@ -110,6 +110,8 @@ export default function FloatingCreateButton() {
         model: singleCategory.score,
         global: singleCategory.score, // 집계에서 재계산됨
       },
+      // 🔧 타입 만족: criteria 필수 → 우선 빈 배열 or 선택값만 넣고 싶으면 [selectedCategory]
+      criteria: [],
       categories: [singleCategory],
       summary,
     };
