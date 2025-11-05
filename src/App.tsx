@@ -1,10 +1,12 @@
-import Header from "./components/layout/Header";
+// src/App.tsx
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./app/AppRoutes";
 
 function App() {
   return (
-    <div className=" min-h-screen w-full flex-col justify-center items-center bg-blue-50 overflow-auto">
-      <Header />
-    </div>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }
 
