@@ -42,7 +42,7 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppLayout() {
   const { pathname } = useLocation();
 
-  // ✅ 랜딩 페이지는 헤더만
+  // ✅ 랜딩은 헤더만 보이게
   const isLanding = pathname === "/" || pathname.startsWith("/landing");
   if (isLanding) {
     return (
@@ -62,7 +62,7 @@ export default function AppLayout() {
     );
   }
 
-  // ====== 일반 레이아웃 ======
+  // ===== 일반 레이아웃 =====
   const current =
     NAV_ITEMS.find((n) => pathname === n.to) ??
     NAV_ITEMS.find((n) => pathname.startsWith(n.to));
@@ -83,7 +83,6 @@ export default function AppLayout() {
         {/* ========== 사이드바 ========== */}
         <aside className="border-r border-slate-200 dark:border-slate-800 h-[calc(100vh-56px)] sticky top-14">
           <TooltipProvider delayDuration={100}>
-            {/* 높이를 적당히 다 채우고, 넘치면 스크롤 */}
             <ScrollArea className="h-full">
               <nav className="px-4 py-5" aria-label="주 메뉴">
                 <p className="px-1 pb-3 text-[12px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -95,7 +94,7 @@ export default function AppLayout() {
                     <li key={to}>
                       <NavLink
                         to={to}
-                        className={({ isActive }) =>
+                        className={({ isActive }: { isActive: boolean }) =>
                           [
                             "group relative flex items-center gap-3.5 rounded-xl px-4 py-3 text-[15px] md:text-base transition",
                             // hover (라이트/다크)
@@ -107,20 +106,16 @@ export default function AppLayout() {
                                   "font-semibold",
                                   "bg-slate-100 text-slate-900 ring-1 ring-slate-200",
                                   "dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-800",
-                                  // 왼쪽 인디케이터 더 넓게
+                                  // 왼쪽 인디케이터
                                   "before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1.5 before:rounded-full before:bg-violet-500",
                                 ].join(" ")
                               : "text-slate-600 dark:text-slate-300",
                           ].join(" ")
                         }
-                        aria-current={({ isActive }) =>
-                          isActive ? "page" : undefined
-                        }
                       >
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="inline-flex items-center justify-center">
-                              {/* 아이콘도 큼직하게 */}
                               <Icon className="size-5 transition-transform group-hover:scale-110" />
                             </span>
                           </TooltipTrigger>
@@ -149,7 +144,7 @@ export default function AppLayout() {
 
         {/* ========== 메인 컨텐츠 ========== */}
         <main className="p-6 md:p-8">
-          {/* 페이지 타이틀(아이콘 + 텍스트) 더 크게 */}
+          {/* 페이지 타이틀 */}
           <header
             className="mb-6 flex items-center gap-3"
             aria-label="페이지 제목"
