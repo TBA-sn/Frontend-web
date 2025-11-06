@@ -275,7 +275,7 @@ export function ExtensionLikePanel({ data }: Props) {
                   </div>
 
                   <div className="space-y-3">
-                    {list.map((item, idx) => {
+                    {list.map((item) => {
                       const globalRank =
                         ordered.findIndex((e) => e.key === item.key) + 1;
                       const isTop3 = globalRank <= 3;
