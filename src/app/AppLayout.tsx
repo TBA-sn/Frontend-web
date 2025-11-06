@@ -25,6 +25,7 @@ import {
   FileBarChart,
   Settings as SettingsIcon,
 } from "lucide-react";
+import FloatingExtensionDemoButton from "@/components/FloatingExtensionDemoButton";
 
 /** ===== 네비 아이템 ===== */
 type NavItem = {
@@ -168,6 +169,7 @@ export default function AppLayout() {
           </main>
         </div>
 
+        <FloatingExtensionDemoButton />
         {/* 우측 하단 플로팅 더미 생성 버튼 */}
         <FloatingCreateButton />
       </div>

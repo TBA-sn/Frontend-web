@@ -1,7 +1,14 @@
 // src/pages/Landing.tsx
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LineChart, GitCompare, Gauge } from "lucide-react";
+import {
+  Sparkles,
+  LineChart,
+  GitCompare,
+  Gauge,
+  Monitor,
+  Puzzle,
+} from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 
 export default function Landing() {
@@ -60,17 +67,53 @@ export default function Landing() {
             cursorStyle="underscore"
           />
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg">
-              <Link to="/dashboard">샘플 분석 확인하러 가기</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <a href="#about">회원가입 하러가기</a>
-            </Button>
-            {/* ✅ 익스텐션 맛보기 버튼 추가 */}
-            <Button asChild size="lg" variant="secondary">
-              <Link to="/extension-demo">익스텐션 맛보기</Link>
-            </Button>
+          {/* ✅ 데모 보러가기 — 웹/익스텐션 두 버튼 (회원가입 제거) */}
+          <div className="mt-10">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              데모 보러가기
+            </h2>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {/* 웹 UI 데모 */}
+              <Button
+                asChild
+                size="lg"
+                className="
+                  h-16 w-full items-center justify-center gap-3 rounded-2xl px-8 text-lg
+                  shadow-sm transition-all
+                  hover:shadow-md hover:brightness-[1.02]
+                "
+              >
+                <Link to="/dashboard" aria-label="웹 UI 데모 보러가기">
+                  <Monitor className="size-5" />웹 UI 데모 보러가기
+                </Link>
+              </Button>
+
+              {/* 익스텐션 UI 데모 */}
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="
+                  h-16 w-full items-center justify-center gap-3 rounded-2xl px-8 text-lg
+                  shadow-sm transition-all
+                  hover:shadow-md hover:brightness-[1.02]
+                "
+              >
+                <Link
+                  to="/extension-demo"
+                  aria-label="익스텐션 UI 데모 보러가기"
+                >
+                  <Puzzle className="size-5" />
+                  익스텐션 UI 데모 보러가기
+                </Link>
+              </Button>
+            </div>
+
+            {/* 보조 설명 */}
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              더미 데이터로 흐름을 빠르게 확인할 수 있어요.
+            </p>
           </div>
         </div>
       </section>
