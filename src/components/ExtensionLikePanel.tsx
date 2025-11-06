@@ -159,6 +159,20 @@ export function ExtensionLikePanel({ data }: Props) {
     <Card className="m-4 border-[#2a2a2a] bg-[#1e1e1e] text-[#e6e6e6]">
       <CardHeader className="gap-3">
         <div className="flex items-start gap-3">
+          <img
+            src="/logo.png" // /public/logo.png
+            alt="DKMV"
+            width={40}
+            height={40}
+            className="
+                h-7 w-7 sm:h-7 sm:w-7
+                rounded-md object-contain
+                ring-1 ring-slate-200/70 dark:ring-slate-800
+                shadow-sm
+              "
+            loading="eager"
+            decoding="async"
+          />
           <CardTitle className="text-xl font-extrabold tracking-tight">
             Don’t Kill My Vibe
           </CardTitle>

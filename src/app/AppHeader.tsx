@@ -30,7 +30,16 @@ export default function AppHeader() {
           to="/dashboard"
           className="inline-flex items-center gap-2 text-slate-900 dark:text-slate-100"
         >
-          <div className="h-6 w-6 rounded-md bg-violet-600" />
+          {/* /public/logo.png → 런타임 경로는 /logo.png */}
+          <img
+            src="/logo.png"
+            alt="DKMV"
+            width={24}
+            height={24}
+            className="h-6 w-6 rounded-md object-contain"
+            loading="eager"
+            decoding="async"
+          />
           <span className="font-bold tracking-wide">DKMV</span>
         </Link>
       </div>

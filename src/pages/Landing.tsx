@@ -36,16 +36,28 @@ export default function Landing() {
         </div>
 
         <div className="mx-auto max-w-5xl px-6 py-24 text-center">
-          <p
-            className="mx-auto inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium
-                         border-slate-200 bg-white/60 text-slate-600
-                         dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300"
+          {/* 제목 + 로고 */}
+          <h1
+            className="
+              mt-5 inline-flex items-center justify-center gap-3 sm:gap-4
+              text-4xl font-extrabold tracking-tight sm:text-5xl
+            "
           >
-            AI 코드 품질을 점수로 재정의
-          </p>
-
-          <h1 className="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Don’t Kill My Vibe
+            <img
+              src="/logo.png" // /public/logo.png
+              alt="DKMV"
+              width={40}
+              height={40}
+              className="
+                h-9 w-9 sm:h-10 sm:w-10
+                rounded-md object-contain
+                ring-1 ring-slate-200/70 dark:ring-slate-800
+                shadow-sm
+              "
+              loading="eager"
+              decoding="async"
+            />
+            <span>Don’t Kill My Vibe</span>
           </h1>
 
           {/* 타이핑 애니메이션 — 단어 순환 */}
@@ -111,8 +123,12 @@ export default function Landing() {
             </div>
 
             {/* 보조 설명 */}
-            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              더미 데이터로 흐름을 빠르게 확인할 수 있어요.
+            <p
+              className="mx-auto inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium
+                         border-slate-200 bg-white/60 text-slate-600
+                         dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300"
+            >
+              AI 코드 품질을 점수로 재정의
             </p>
           </div>
         </div>
