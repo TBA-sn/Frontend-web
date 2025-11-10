@@ -5,7 +5,7 @@ const CREATE_PATH = "/v1/reviews/request"; // 생성은 계속 쓰실 거면 유
 
 // 배포: 상대경로(/api) 사용, 로컬 DEV: 배포 도메인 직접 호출(프록시 경유)
 const API_BASE = import.meta.env.DEV
-  ? "https://<당신의-베르셀-도메인>.vercel.app/api" // 예: https://web-dkmv.vercel.app/api
+  ? "https://web-dkmv.vercel.app.vercel.app/api"
   : "/api";
 
 // === 조회(인증 불필요 버전) ===
