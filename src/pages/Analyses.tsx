@@ -1,8 +1,10 @@
 // src/pages/Analyses.tsx
 "use client";
 
-import { useMemo, useState } from "react";
-import { useDummyData } from "@/components/DummyDataContext";
+import * as React from "react";
+import { fetchReviews } from "@/lib/reviewsApi";
+import { getAuthToken, setAuthToken, clearAuthToken } from "@/lib/auth";
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,91 +16,147 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
+type ReviewItem = {
+  review_id?: number;
+  global_score?: number;
+  model_score?: number;
+  categories?: { name: string; score: number; comment?: string }[];
+  summary?: string;
+  created_at?: string; // 서버에 없을 수도 있어 optional
+};
 
 export default function Analyses() {
-  const { list } = useDummyData();
+  // ===== server data =====
+  const [items, setItems] = React.useState<ReviewItem[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string>("");
+  const [limit, setLimit] = React.useState<number>(20);
 
-  // ===== filters =====
-  const [q, setQ] = useState("");
-  const [lang, setLang] = useState<string>("__all__");
-  const [model, setModel] = useState<string>("__all__");
-  const [trigger, setTrigger] = useState<string>("__all__");
+  // ===== filters (실데이터 기준 간소화) =====
+  const [q, setQ] = React.useState(""); // summary / category name 검색
+  const [minGlobal, setMinGlobal] = React.useState<string>("__all__");
+  const [minModel, setMinModel] = React.useState<string>("__all__");
 
-  // 옵션은 데이터로부터 유니크 추출
-  const { langOptions, modelOptions, triggerOptions } = useMemo(() => {
-    const langs = Array.from(new Set(list.map((x) => x.language))).sort();
-    const models = Array.from(new Set(list.map((x) => x.model_id))).sort();
-    const triggers = Array.from(new Set(list.map((x) => x.trigger))).sort();
-    return {
-      langOptions: langs,
-      modelOptions: models,
-      triggerOptions: triggers,
-    };
-  }, [list]);
+  // ===== auth =====
+  const [tokenInput, setTokenInput] = React.useState(getAuthToken() ?? "");
+  const saveToken = () => {
+    setAuthToken(tokenInput || "");
+    alert("토큰 저장됨");
+  };
+  const removeToken = () => {
+    clearAuthToken();
+    setTokenInput("");
+    alert("토큰 제거됨");
+  };
 
-  const filtered = useMemo(() => {
-    return list.filter((x) => {
-      if (lang !== "__all__" && x.language !== lang) return false;
-      if (model !== "__all__" && x.model_id !== model) return false;
-      if (trigger !== "__all__" && x.trigger !== trigger) return false;
+  const load = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await fetchReviews(limit); // GET /v1/reviews?limit=...
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }, [limit]);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  const filtered = React.useMemo(() => {
+    const mg = minGlobal === "__all__" ? null : Number(minGlobal);
+    const mm = minModel === "__all__" ? null : Number(minModel);
+    return items.filter((r) => {
+      if (mg != null && (r.global_score ?? -Infinity) < mg) return false;
+      if (mm != null && (r.model_score ?? -Infinity) < mm) return false;
 
       if (q.trim()) {
-        const hay = `${x.code} ${x.summary} ${x.categories
-          .map((c) => c.name)
-          .join(" ")}`.toLowerCase();
+        const cats = (r.categories ?? []).map((c) => c.name).join(" ");
+        const hay = `${r.summary ?? ""} ${cats}`.toLowerCase();
         if (!hay.includes(q.toLowerCase())) return false;
       }
       return true;
     });
-  }, [list, lang, model, trigger, q]);
+  }, [items, q, minGlobal, minModel]);
 
   return (
     <div className="space-y-6">
+      {/* ===== 헤더: 토큰/limit/새로고침 ===== */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          분석 기록 (실서버)
+        </h1>
+
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {/* 토큰 입력 */}
+          <div className="flex items-center gap-2">
+            <Input
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Bearer 토큰"
+              className="w-[340px]"
+            />
+            <Button variant="secondary" onClick={saveToken}>
+              저장
+            </Button>
+            <Button variant="outline" onClick={removeToken}>
+              삭제
+            </Button>
+          </div>
+
+          {/* limit + 새로고침 */}
+          <div className="flex items-center gap-2 md:ml-4">
+            <span className="text-sm text-muted-foreground">limit</span>
+            <Input
+              className="w-24"
+              type="number"
+              min={1}
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value || 20))}
+            />
+            <Button variant="outline" onClick={load} disabled={loading}>
+              {loading ? "불러오는 중…" : "새로고침"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* ===== 필터 ===== */}
       <div className="grid gap-3 md:grid-cols-4">
         <Input
-          placeholder="검색(코드/요약/카테고리)"
+          placeholder="검색(요약/카테고리)"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
 
-        <Select value={lang} onValueChange={setLang}>
+        <Select value={minGlobal} onValueChange={setMinGlobal}>
           <SelectTrigger>
-            <SelectValue placeholder="언어" />
+            <SelectValue placeholder="최소 Global 점수" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">전체 언어</SelectItem>
-            {langOptions.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
+            <SelectItem value="__all__">Global 제한 없음</SelectItem>
+            {[50, 60, 70, 80, 90].map((v) => (
+              <SelectItem key={v} value={String(v)}>
+                Global ≥ {v}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select value={model} onValueChange={setModel}>
+        <Select value={minModel} onValueChange={setMinModel}>
           <SelectTrigger>
-            <SelectValue placeholder="모델" />
+            <SelectValue placeholder="최소 Model 점수" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">전체 모델</SelectItem>
-            {modelOptions.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={trigger} onValueChange={setTrigger}>
-          <SelectTrigger>
-            <SelectValue placeholder="트리거" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">전체 트리거</SelectItem>
-            {triggerOptions.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
+            <SelectItem value="__all__">Model 제한 없음</SelectItem>
+            {[50, 60, 70, 80, 90].map((v) => (
+              <SelectItem key={v} value={String(v)}>
+                Model ≥ {v}
               </SelectItem>
             ))}
           </SelectContent>
@@ -109,7 +167,7 @@ export default function Analyses() {
       <Card>
         <CardHeader>
           <CardTitle>
-            분석 기록{" "}
+            서버 리뷰 목록{" "}
             <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
               {filtered.length}건
             </span>
@@ -117,84 +175,92 @@ export default function Analyses() {
         </CardHeader>
 
         <CardContent className="text-sm">
+          {/* 에러 표시 */}
+          {error && (
+            <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+              {error}
+            </div>
+          )}
+
           {/* 헤더 */}
           <div className="grid grid-cols-12 gap-3 pb-2 font-semibold text-slate-700 dark:text-slate-200">
-            <div className="col-span-2">날짜</div>
-            <div className="col-span-2">언어 / 모델</div>
-            <div className="col-span-2">점수</div>
-            <div className="col-span-2">트리거</div>
-            <div className="col-span-2">카테고리</div>
-            <div className="col-span-2">요약</div>
+            <div className="col-span-2">ID / 날짜</div>
+            <div className="col-span-2">Global / Model</div>
+            <div className="col-span-4">요약</div>
+            <div className="col-span-4">카테고리</div>
           </div>
 
-          {filtered.length === 0 && (
+          {loading && (
+            <div className="py-12 text-center text-slate-500">불러오는 중…</div>
+          )}
+
+          {!loading && filtered.length === 0 && (
             <div className="py-12 text-center text-slate-500">
-              데이터가 없습니다. 우측 하단 버튼으로 더미를 생성해보세요.
+              데이터가 없습니다.
             </div>
           )}
 
           {filtered.map((it) => (
             <div
-              key={it.id}
-              className="grid grid-cols-12 gap-3 py-3 border-t border-slate-200 dark:border-slate-800"
+              key={String(it.review_id ?? Math.random())}
+              className="grid grid-cols-12 gap-3 border-t border-slate-200 py-3 dark:border-slate-800"
             >
               <div className="col-span-2">
-                <div className="font-medium">
-                  {new Date(it.createdAt).toLocaleString()}
-                </div>
+                <div className="font-medium">#{it.review_id ?? "-"}</div>
                 <div className="text-xs text-slate-500">
-                  id: {it.id.replace("dummy_", "")}
+                  {it.created_at
+                    ? new Date(it.created_at).toLocaleString()
+                    : "-"}
                 </div>
               </div>
 
-              <div className="col-span-2">
-                <div className="font-medium">{it.language}</div>
-                <div className="text-xs text-slate-500">{it.model_id}</div>
-              </div>
-
-              {/* ✅ 점수 리팩토링 */}
               <div className="col-span-2">
                 <div className="font-semibold text-violet-600 dark:text-violet-400">
-                  {it.scores?.model ?? "-"}점
+                  G {it.global_score ?? "-"}
                 </div>
-                <div className="text-xs text-slate-500">모델 점수</div>
+                <div className="text-xs text-slate-500">
+                  M {it.model_score ?? "-"}
+                </div>
               </div>
 
-              <div className="col-span-2 capitalize">{it.trigger}</div>
-
-              <div className="col-span-2 space-y-1">
-                {it.categories.slice(0, 2).map((c, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Badge variant="secondary" className="shrink-0">
-                      {c.name}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-
-              <div className="col-span-2">
-                <div className="line-clamp-2 text-slate-700 dark:text-slate-300">
+              <div className="col-span-4">
+                <div className="line-clamp-3 text-slate-700 dark:text-slate-300">
                   {it.summary || (
                     <span className="text-slate-500">요약 없음</span>
                   )}
                 </div>
-                {/* 코드 미리보기 한 줄 */}
-                <pre className="mt-1 text-xs text-slate-500 overflow-hidden text-ellipsis whitespace-nowrap">
-                  {String(it.code).split("\n")[0]}
-                </pre>
-                <div className="mt-2">
-                  <Button size="sm" variant="outline" disabled>
-                    상세 (준비중)
-                  </Button>
-                </div>
+              </div>
+
+              <div className="col-span-4 space-y-1">
+                {(it.categories ?? []).slice(0, 4).map((c, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Badge variant="secondary" className="shrink-0">
+                      {c.name}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      score: {c.score}
+                    </span>
+                    {c.comment && (
+                      <>
+                        <Separator orientation="vertical" className="h-3" />
+                        <span className="text-xs">{c.comment}</span>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
 
           {filtered.length > 0 && (
             <div className="pt-4">
-              <Button variant="outline" size="sm" disabled>
-                더 보기
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={load}
+                disabled={loading}
+              >
+                더 불러오기(동일 limit 재호출)
               </Button>
             </div>
           )}

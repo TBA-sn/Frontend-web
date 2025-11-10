@@ -1,35 +1,38 @@
-// src/lib/reviewsApi.ts
-// ↕ 필요 시 경로만 바꾸면 됨
-const LIST_PATH = "/v1/reviews"; // GET 목록
-const CREATE_PATH = "/v1/reviews/request"; // POST 생성(요청)
+import { authHeader } from "./auth";
 
-// 조회: limit 쿼리 지원
+const API_BASE = import.meta.env.DEV
+  ? "https://<당신의-vercel-도메인>.vercel.app/api" // 예: https://web-dkmv.vercel.app/api
+  : "/api";
+
+const LIST_PATH = "/v1/reviews";
+const CREATE_PATH = "/v1/reviews/request";
+
 export async function fetchReviews(limit = 20) {
-  const url = new URL(`/api${LIST_PATH}`, location.origin);
+  const url = new URL(`${API_BASE}${LIST_PATH}`);
   url.searchParams.set("limit", String(limit));
-  const res = await fetch(url.toString(), { method: "GET" });
-  if (!res.ok) throw new Error(`GET ${LIST_PATH} failed: ${res.status}`);
-  return res.json() as Promise<any[]>;
-}
-
-// 단건 조회: 필요하면 사용
-export async function fetchReviewById(reviewId: number | string) {
-  const res = await fetch(`/api${LIST_PATH}/${reviewId}`, { method: "GET" });
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    headers: { ...authHeader() },
+    credentials: "include",
+  });
   if (!res.ok)
-    throw new Error(`GET ${LIST_PATH}/${reviewId} failed: ${res.status}`);
+    throw new Error(`GET ${LIST_PATH} -> ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
-// 생성: 백엔드 스키마에 맞는 raw JSON 그대로 보냄
 export async function createReviewRaw(payload: unknown) {
-  const res = await fetch(`/api${CREATE_PATH}`, {
+  const res = await fetch(`${API_BASE}${CREATE_PATH}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader(),
+    },
     body: JSON.stringify(payload),
+    credentials: "include",
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`POST ${CREATE_PATH} failed: ${res.status} ${text}`);
-  }
+  if (!res.ok)
+    throw new Error(
+      `POST ${CREATE_PATH} -> ${res.status}: ${await res.text()}`
+    );
   return res.json();
 }

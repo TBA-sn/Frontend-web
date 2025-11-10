@@ -1,5 +1,9 @@
+// src/pages/ReviewsPage.tsx
 import * as React from "react";
 import { fetchReviews, createReviewRaw } from "@/lib/reviewsApi";
+import { setAuthToken, getAuthToken, clearAuthToken } from "@/lib/auth";
+
+// shadcn/ui
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,20 +17,22 @@ type ReviewItem = {
   model_score?: number;
   categories?: { name: string; score: number; comment?: string }[];
   summary?: string;
-  created_at?: string; // 있으면 표시
+  created_at?: string;
 };
 
 export default function ReviewsPage() {
+  // ---- state
   const [limit, setLimit] = React.useState<number>(20);
   const [loading, setLoading] = React.useState(false);
+  const [posting, setPosting] = React.useState(false);
   const [error, setError] = React.useState<string>("");
   const [items, setItems] = React.useState<ReviewItem[]>([]);
+  const [tokenInput, setTokenInput] = React.useState(getAuthToken() ?? "");
 
-  // 생성용 Raw JSON (스키마에 맞춰 자유롭게 수정)
+  // 초기 예시 payload (Raw JSON)
   const [payload, setPayload] = React.useState<string>(
     JSON.stringify(
       {
-        // ⬇ 백엔드가 요구하는 필드에 맞춰 수정하세요
         global_score: 85,
         model_score: 87,
         categories: [
@@ -39,25 +45,35 @@ export default function ReviewsPage() {
       2
     )
   );
-  const [posting, setPosting] = React.useState(false);
 
-  async function load() {
+  // ---- actions
+  const load = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
       const data = await fetchReviews(limit);
-      setItems(data ?? []);
+      setItems(Array.isArray(data) ? data : []);
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
       setLoading(false);
     }
-  }
+  }, [limit]);
 
   React.useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // 첫 진입 시 목록 로드
+    void load();
+  }, [load]);
+
+  const saveToken = () => {
+    setAuthToken(tokenInput || "");
+    alert("토큰 저장됨");
+  };
+  const removeToken = () => {
+    clearAuthToken();
+    setTokenInput("");
+    alert("토큰 제거됨");
+  };
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -68,11 +84,12 @@ export default function ReviewsPage() {
       setError("JSON 파싱 실패: 유효한 JSON인지 확인하세요.");
       return;
     }
+
     try {
       setPosting(true);
       setError("");
       await createReviewRaw(body);
-      await load(); // 저장 후 목록 리프레시
+      await load(); // 저장 후 목록 다시 불러오기
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -80,13 +97,35 @@ export default function ReviewsPage() {
     }
   }
 
+  // ---- UI
   return (
     <div className="mx-auto max-w-6xl p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Reviews (임시)</h1>
-        <div className="flex items-center gap-3">
+      {/* 헤더 */}
+      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Reviews (임시)
+        </h1>
+
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {/* 토큰 입력 */}
           <div className="flex items-center gap-2">
-            <Label htmlFor="limit" className="text-sm">
+            <Input
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Bearer 토큰"
+              className="w-[340px]"
+            />
+            <Button variant="secondary" onClick={saveToken}>
+              저장
+            </Button>
+            <Button variant="outline" onClick={removeToken}>
+              삭제
+            </Button>
+          </div>
+
+          {/* limit + 새로고침 */}
+          <div className="flex items-center gap-2 md:ml-4">
+            <Label htmlFor="limit" className="text-sm text-muted-foreground">
               limit
             </Label>
             <Input
@@ -97,22 +136,25 @@ export default function ReviewsPage() {
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value || 20))}
             />
+            <Button variant="outline" onClick={load} disabled={loading}>
+              {loading ? "불러오는 중…" : "새로고침"}
+            </Button>
           </div>
-          <Button variant="outline" onClick={load} disabled={loading}>
-            {loading ? "불러오는 중…" : "새로고침"}
-          </Button>
         </div>
       </header>
 
-      <Card>
+      {/* 생성 폼 (Raw JSON) */}
+      <Card className="border border-slate-200 dark:border-slate-800">
         <CardHeader>
           <CardTitle className="text-lg">리뷰 생성 (Raw JSON)</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onCreate} className="space-y-3">
-            <Label className="text-sm">Payload (JSON)</Label>
+            <Label className="text-sm text-muted-foreground">
+              Payload (JSON)
+            </Label>
             <Textarea
-              className="min-h-[180px] font-mono text-sm"
+              className="min-h-[200px] font-mono text-sm"
               value={payload}
               onChange={(e) => setPayload(e.target.value)}
             />
@@ -123,15 +165,16 @@ export default function ReviewsPage() {
               {error && <span className="text-sm text-red-600">{error}</span>}
             </div>
             <p className="text-xs text-muted-foreground">
-              * 백엔드 스키마 그대로 보냅니다. 필요한 필드를 JSON으로 자유롭게
+              * 백엔드 스키마를 그대로 보냅니다. 필요한 필드를 JSON으로 자유롭게
               편집하세요.
             </p>
           </form>
         </CardContent>
       </Card>
 
+      {/* 목록 */}
       <section>
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex items-center justify-between">
           <h2 className="text-xl font-medium">리뷰 목록</h2>
           <span className="text-sm text-muted-foreground">
             {items.length}개
@@ -161,7 +204,7 @@ export default function ReviewsPage() {
               className="border border-slate-200/70 dark:border-slate-800/70"
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex flex-wrap items-center gap-3">
+                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
                   <span className="font-semibold">#{r.review_id}</span>
                   <Separator orientation="vertical" className="h-4" />
                   <span>
@@ -173,20 +216,23 @@ export default function ReviewsPage() {
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm space-y-2">
+              <CardContent className="space-y-3 text-sm">
                 {r.summary && (
-                  <p className="whitespace-pre-wrap">{r.summary}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {r.summary}
+                  </p>
                 )}
+
                 {Array.isArray(r.categories) && r.categories.length > 0 && (
                   <div className="rounded-lg border p-3">
-                    <div className="font-medium mb-2">Categories</div>
+                    <div className="mb-2 font-medium">Categories</div>
                     <ul className="space-y-1">
                       {r.categories.map((c, i) => (
                         <li
                           key={i}
                           className="flex flex-wrap items-center gap-2"
                         >
-                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs">
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">
                             {c.name}
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -200,6 +246,7 @@ export default function ReviewsPage() {
                     </ul>
                   </div>
                 )}
+
                 {r.created_at && (
                   <div className="text-xs text-muted-foreground">
                     {new Date(r.created_at).toLocaleString()}
