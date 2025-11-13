@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
+
+    
   },
   "dependencies": {
     "@fontsource/gowun-dodum": "^5.2.8",
